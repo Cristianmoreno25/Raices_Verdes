@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config = {
   darkMode: ["class"],
@@ -7,6 +8,7 @@ const config = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    
   ],
   prefix: "",
   theme: {
@@ -19,6 +21,7 @@ const config = {
     },
     extend: {
       colors: {
+        // Colores del tema base
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -52,6 +55,23 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        
+        // Paleta personalizada para Raíces Verdes
+        green: {
+          600: '#2c7a4d',
+          700: '#276749',
+          800: '#2F855A',
+        },
+        amber: {
+          50: '#FFFBEB',
+          200: '#FDE68A',
+          300: '#FCD34D',
+        },
+        nature: {
+          earth: '#a78b6d',
+          leaf: '#4a7c59',
+          bark: '#5e4536',
+        }
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -67,14 +87,37 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "slide-in": {
+          from: { transform: 'translateX(-100%)' },
+          to: { transform: 'translateX(0)' },
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "slide-in": "slide-in 0.3s ease-out",
       },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+      }
     },
   },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config;
-
-export default config;
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(({ addUtilities }) => {
+      addUtilities({
+        '.preserve-3d': {
+          'transform-style': 'preserve-3d',
+        },
+        '.backface-hidden': {
+          'backface-visibility': 'hidden',
+        },
+        '.no-scroll': {
+          'overflow': 'hidden',
+        }
+      })
+    })
+  ],
+} satisfies Config;  
+  export default config;

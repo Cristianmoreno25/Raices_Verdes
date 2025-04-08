@@ -1,44 +1,30 @@
-import NextLogo from "./next-logo";
-import SupabaseLogo from "./supabase-logo";
+'use client'
 
-export default function Header() {
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+
+export default function Hero() {
   return (
-    <div className="flex flex-col gap-16 items-center">
-      <div className="flex gap-8 justify-center items-center">
-        <a
-          href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <SupabaseLogo />
-        </a>
-        <span className="border-l rotate-45 h-6" />
-        <a href="https://nextjs.org/" target="_blank" rel="noreferrer">
-          <NextLogo />
-        </a>
+    <motion.section
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="bg-green-50 py-20 px-6 text-center"
+    >
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-5xl font-extrabold text-green-800 mb-6 leading-tight">
+          Raíces Verdes
+        </h1>
+        <p className="text-lg text-green-700 mb-8 max-w-2xl mx-auto">
+          Un espacio donde la cultura, identidad y sostenibilidad se conectan. Apoyamos a productores indígenas para que sus productos lleguen al mundo, valorizando el conocimiento ancestral y fomentando un comercio justo.
+        </p>
+        <Image
+          src="/logoRV.jpg" 
+          alt="Raíces Verdes"
+          width={200}
+          height={200}
+          className="mx-auto mb-4"
+        />
       </div>
-      <h1 className="sr-only">Supabase and Next.js Starter Template</h1>
-      <p className="text-3xl lg:text-4xl !leading-tight mx-auto max-w-xl text-center">
-        The fastest way to build apps with{" "}
-        <a
-          href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-          target="_blank"
-          className="font-bold hover:underline"
-          rel="noreferrer"
-        >
-          Supabase
-        </a>{" "}
-        and{" "}
-        <a
-          href="https://nextjs.org/"
-          target="_blank"
-          className="font-bold hover:underline"
-          rel="noreferrer"
-        >
-          Next.js
-        </a>
-      </p>
-      <div className="w-full p-[1px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent my-8" />
-    </div>
-  );
-}
+    </motion.section>
+  )}
