@@ -10,14 +10,13 @@ import {
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/utils/supabase/client'
 
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const pathname = usePathname()
   const router = useRouter()
-
-  // Obtener la sesión y actualizar en tiempo real
-  useEffect(() => {
+   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabase.auth.getUser()
       setUser(data.user)
@@ -33,17 +32,50 @@ export default function Navbar() {
     }
   }, [])
 
-  // Control del scroll y cierre automático del menú
-  useEffect(() => {
-    const handleScroll = () => setIsOpen(false)
+  const getUserRole = async (userId: string): Promise<'producer' | 'client' | null> => {
+    const { data: productor } = await supabase
+      .from('productores')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
 
+    if (productor) return 'producer'
+
+    const { data: cliente } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (cliente) return 'client'
+
+    return null
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    if (pathname.startsWith('/profile')) {
+      router.push('/')
+    }
+  }
+
+  const userName = user?.user_metadata?.full_name || user?.email || 'Usuario'
+
+  const navLinks = [
+    { href: '/products', name: 'Productos' },
+    { href: '/cultural', name: 'Cultura Indígena' },
+    { href: '/medicinal', name: 'Medicina Natural' },
+  ]
+
+  useEffect(() => {
+  const handleScroll = () => setIsOpen(false)
     if (isOpen) {
       document.body.classList.add('overflow-hidden')
       window.addEventListener('scroll', handleScroll)
     } else {
       document.body.classList.remove('overflow-hidden')
-    }
-
+  }
     return () => {
       document.body.classList.remove('overflow-hidden')
       window.removeEventListener('scroll', handleScroll)
@@ -52,25 +84,7 @@ export default function Navbar() {
 
   useEffect(() => setIsOpen(false), [pathname])
 
-  const navLinks = [
-    { href: '/products', name: 'Productos' },
-    { href: '/cultural', name: 'Cultura Indígena' },
-    { href: '/medicinal', name: 'Medicina Natural' },
-  ]
-
-  // Extraer el nombre del usuario desde metadata (o fallback a email)
-  const userName = user?.user_metadata?.full_name || user?.email || 'Usuario'
-
-  // Manejador de cierre de sesión que redirige si está en perfil
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    if (pathname.startsWith('/profile')) {
-      router.push('/') // redirige a home o a donde prefieras
-    }
-  }
-
-  return (
+return (
     <header className="bg-green-800 text-amber-50 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-2 py-2 flex items-center justify-between">
         {/* Logo y botón hamburguesa */}
@@ -90,7 +104,7 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Barra de búsqueda - Desktop */}
+        {/* Barra de búsqueda */}
         <div className="hidden md:flex flex-1 mx-4">
           <div className="relative w-full max-w-md">
             <input
@@ -104,13 +118,23 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Botones de usuario - Desktop */}
+        {/* Botones de usuario */}
         <div className="hidden md:flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/profile" className="text-amber-200 hover:text-amber-100 transition-colors text-sm">
+              <button
+                onClick={async () => {
+                  if (user) {
+                    const role = await getUserRole(user.id)
+                    if (role === 'producer') router.push('/profile/producer')
+                    else if (role === 'client') router.push('/profile/client')
+                    else router.push('/')
+                  }
+                }}
+                className="text-amber-200 hover:text-amber-100 transition-colors text-sm"
+              >
                 ¡Hola, {userName}!
-              </Link>
+              </button>
               <button
                 onClick={handleSignOut}
                 className="px-3 py-1 rounded-full bg-amber-200 text-green-800 hover:bg-amber-300 transition-colors font-medium text-sm"
@@ -210,6 +234,4 @@ export default function Navbar() {
         </AnimatePresence>
       </div>
     </header>
-  )
-}
-
+  )}

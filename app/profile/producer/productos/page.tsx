@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
@@ -11,32 +12,50 @@ import Link from 'next/link'
 export default function ProductosPage() {
   const [productos, setProductos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchProductos = async () => {
       const {
-        data: { user }
+        data: { user },
+        error: userError
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (userError || !user) {
+        router.push('/')
+        return
+      }
 
-      const { data, error } = await supabase
+      // Verificar si es un productor registrado
+      const { data: productor, error: productorError } = await supabase
+        .from('productores')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (productorError || !productor) {
+        router.push('/')
+        return
+      }
+
+      // Cargar productos del productor
+      const { data: productosData, error: productosError } = await supabase
         .from('productos')
         .select('*')
         .eq('productor_id', user.id)
         .order('creado_en', { ascending: false })
 
-      if (error) {
-        console.error('Error al obtener productos:', error)
+      if (productosError) {
+        console.error('Error al obtener productos:', productosError)
       } else {
-        setProductos(data)
+        setProductos(productosData)
       }
 
       setLoading(false)
     }
 
     fetchProductos()
-  }, [])
+  }, [router])
 
   const eliminarProducto = async (id: number) => {
     const confirmar = confirm('¿Estás seguro de que quieres eliminar este producto?')
@@ -94,20 +113,20 @@ export default function ProductosPage() {
               <h2 className="text-xl font-semibold text-green-800">{producto.nombre}</h2>
               <p className="text-sm text-gray-700">{producto.descripcion}</p>
               <p className="text-green-600 font-medium">
-              {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(producto.precio)}
+                {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(producto.precio)}
               </p>
               <p className="text-sm text-amber-700">Comunidad: {producto.comunidad_origen}</p>
 
               <div className="flex justify-end gap-2 mt-2">
-              <Link href={`/profile/producer/productos/editar/${producto.id}`}>
-                <Button
+                <Link href={`/profile/producer/productos/editar/${producto.id}`}>
+                  <Button
                     size="sm"
                     variant="outline"
                     className="border-green-600 text-green-700 hover:bg-green-50"
-                >
+                  >
                     <Pencil size={16} />
-                </Button>
-            </Link>
+                  </Button>
+                </Link>
                 <Button
                   size="sm"
                   variant="outline"

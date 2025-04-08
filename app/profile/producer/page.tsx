@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import Link from 'next/link'
 export default function ProducerProfilePage() {
   const [productor, setProductor] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchProductor = async () => {
@@ -19,7 +21,7 @@ export default function ProducerProfilePage() {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        console.error('Error al obtener el usuario:', userError)
+        router.push('/')
         return
       }
 
@@ -29,26 +31,21 @@ export default function ProducerProfilePage() {
         .eq('id', user.id)
         .single()
 
-      if (error) {
-        console.error('Error al cargar el productor:', error)
-      } else {
-        setProductor(data)
+      if (error || !data) {
+        router.push('/')
+        return
       }
 
+      setProductor(data)
       setLoading(false)
     }
 
     fetchProductor()
-  }, [])
+  }, [router])
 
   if (loading) {
     return <div className="text-center py-10 text-green-800">Cargando perfil...</div>
-  }
-
-  if (!productor) {
-    return <div className="text-center py-10 text-red-600">No se pudo cargar el perfil del productor.</div>
-  }
-
+}
   return (
     <motion.div
       className="max-w-5xl mx-auto px-6 py-12 space-y-10 bg-white rounded-3xl shadow-lg"
@@ -93,6 +90,4 @@ export default function ProducerProfilePage() {
         ))}
       </div>
     </motion.div>
-  )
-}
-
+  )}
