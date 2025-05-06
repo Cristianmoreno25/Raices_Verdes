@@ -64,7 +64,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/products', name: 'Productos' },
-    { href: '/cultural', name: 'Cultura Indígena' },
+    { href: '/cultura', name: 'Cultura Indígena' },
     { href: '/medicinal', name: 'Medicina Natural' },
   ]
 
