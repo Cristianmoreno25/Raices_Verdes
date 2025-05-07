@@ -79,6 +79,14 @@ export default function ProducerProfilePage() {
             Gestión de productos
           </Button>
         </Link>
+        <Link href="/profile/producer/medicina">
+          <Button
+            variant="outline"
+            className="text-green-900 font-medium border-green-300 bg-green-50 hover:bg-green-100 transition-all px-6 py-3 rounded-xl shadow-sm whitespace-nowrap"
+          >
+            Gestión medicinal
+          </Button>
+        </Link>
         {['Ventas realizadas', 'Notificaciones', 'Configuración'].map((label) => (
           <Button
             key={label}

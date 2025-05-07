@@ -33,7 +33,7 @@ export default function HomePage() {
             Ver Productos
           </Link>
           <Link 
-            href="/cultural"
+            href="/cultura"
             className="flex items-center gap-2 px-6 py-3 border border-green-800 text-green-800 rounded-full hover:bg-green-50 transition-colors"
           >
             <FaHandshake />
