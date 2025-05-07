@@ -68,7 +68,7 @@ export default function RoleSelection() {
             <div className="text-center mb-6">
               <FaLeaf className="text-5xl text-amber-300 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-green-800 mb-4">
-                Como Guardián Cultural
+                Como Productor indígena
               </h2>
             </div>
 

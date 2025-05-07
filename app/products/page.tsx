@@ -11,11 +11,24 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
+
   const limit = 12
   const offset = useRef(0)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
+
+  // Verifica si hay sesión activa
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setUserId(session.user.id)
+      }
+    }
+    getSession()
+  }, [])
 
   const fetchProductos = useCallback(async () => {
     if (loading || !hasMore) return
@@ -37,8 +50,7 @@ export default function ProductsPage() {
       setHasMore(false)
     }
 
-    // Evitar productos duplicados
-    setProductos((prev) => {
+     setProductos((prev) => {
       const all = [...prev, ...data]
       const unique = Array.from(new Map(all.map(p => [p.id, p])).values())
       return unique
@@ -48,8 +60,7 @@ export default function ProductsPage() {
     setLoading(false)
   }, [loading, hasMore])
 
-  // Scroll infinito
-  useEffect(() => {
+   useEffect(() => {
     if (!loaderRef.current) return
     if (observerRef.current) observerRef.current.disconnect()
 
@@ -63,6 +74,48 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProductos()
   }, [])
+
+  const agregarAlCarrito = async (producto: any) => {
+    if (!userId) {
+      router.push('/auth/login')
+      return
+    }
+
+    // Verifica si el producto ya está en el carrito
+    const { data: existente } = await supabase
+      .from('carritos')
+      .select('id, cantidad')
+      .eq('cliente_id', userId)
+      .eq('producto_id', producto.id)
+      .single()
+
+    if (existente) {
+      // Si el producto ya existe, actualiza la cantidad
+      const { error: updateError } = await supabase
+        .from('carritos')
+        .update({ cantidad: existente.cantidad + 1 })
+        .eq('id', existente.id)
+
+      if (updateError) {
+        alert('Error al actualizar el carrito.')
+      } else {
+        alert('Cantidad actualizada en el carrito ✅')
+      }
+    } else {
+      // Si el producto no existe, lo agrega al carrito
+      const { error: insertError } = await supabase.from('carritos').insert({
+        cliente_id: userId,
+        producto_id: producto.id,
+        cantidad: 1,
+      })
+
+      if (insertError) {
+        alert('Error al agregar al carrito.')
+      } else {
+        alert('Producto agregado al carrito ✅')
+      }
+    }
+  }
 
   return (
     <motion.div
@@ -83,26 +136,36 @@ export default function ProductsPage() {
         {productos.map((producto) => (
           <motion.div
             key={producto.id}
-            className="bg-white rounded-2xl border border-amber-200 shadow hover:shadow-lg cursor-pointer transition"
-            onClick={() => router.push(`/products/${producto.id}`)}
+            className="bg-white rounded-2xl border border-amber-200 shadow hover:shadow-lg transition"
             whileHover={{ scale: 1.02 }}
           >
-            <div className="w-full h-48 relative overflow-hidden rounded-t-2xl">
-            <div className="relative w-full aspect-video bg-white border border-amber-100 rounded-xl shadow-md overflow-hidden">
-              <Image
-                src={producto.imagen_url}
-                alt={producto.nombre}
-                fill
-                className="object-contain"
-              />
+            <div
+              onClick={() => router.push(`/products/${producto.id}`)}
+              className="cursor-pointer"
+            >
+              <div className="relative w-full aspect-video bg-white border border-amber-100 rounded-t-2xl overflow-hidden">
+                <Image
+                  src={producto.imagen_url}
+                  alt={producto.nombre}
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="p-4">
+                <h2 className="text-xl font-semibold text-green-900 mb-1">{producto.nombre}</h2>
+                <p className="text-green-700 font-bold">
+                  ${Number(producto.precio).toLocaleString('es-CO')}
+                </p>
+                <p className="text-sm text-gray-600">{producto.comunidad_origen}</p>
+              </div>
             </div>
-            </div>
-            <div className="p-4">
-              <h2 className="text-xl font-semibold text-green-900 mb-1">{producto.nombre}</h2>
-              <p className="text-green-700 font-bold">
-                ${Number(producto.precio).toLocaleString('es-CO')}
-              </p>
-              <p className="text-sm text-gray-600">{producto.comunidad_origen}</p>
+            <div className="p-4 pt-0">
+              <button
+                onClick={() => agregarAlCarrito(producto)}
+                className="mt-2 w-full bg-green-700 text-white py-2 px-4 rounded-xl hover:bg-green-800 transition"
+              >
+                Agregar al carrito 🛒
+              </button>
             </div>
           </motion.div>
         ))}
@@ -115,4 +178,4 @@ export default function ProductsPage() {
       <div ref={loaderRef} className="h-8" />
     </motion.div>
   )
-}
+} 
