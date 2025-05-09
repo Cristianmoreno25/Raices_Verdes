@@ -133,7 +133,15 @@ const LoginPage = () => {
           ) : (
             "Iniciar Sesión"
           )}
-        </button>
+        </button>        
+
+        {/* ... dentro del JSX de tu formulario: */}
+        <p className="mt-4 text-center text-sm">
+          ¿Olvidaste tu contraseña?&nbsp;
+          <Link href="/password-recovery" className="text-blue-600 hover:underline">
+            Restablecer contraseña
+          </Link>
+        </p>
 
         <p className="mt-4 text-center text-green-600">
           ¿No tienes cuenta?{" "}

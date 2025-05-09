@@ -79,7 +79,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/products', name: 'Productos' },
     { href: '/cultura', name: 'Cultura Indígena' },
-    { href: '/medicinal', name: 'Medicina Natural' },
+    { href: '/medicina', name: 'Medicina Natural' },
   ]
 
   // Scroll cierra menú móvil
