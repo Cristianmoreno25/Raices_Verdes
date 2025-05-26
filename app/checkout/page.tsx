@@ -1,19 +1,19 @@
-'use client'
+//app/checkout/page.tsx
+"use client"
 
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaShoppingBag, FaLeaf } from 'react-icons/fa'
 import { supabase } from '@/utils/supabase/client'
 
-// Tipado para los items del carrito con precios
-type CartItemWithPrecio = {
-  producto_id: string
-  cantidad: number
-  productos: { precio: number }[]
-}
-
-// Tipado del pago insertado
-type Pago = {
+interface CartItem {
   id: string
+  producto_id: string
+  nombre: string
+  precio: number
+  cantidad: number
+  stock: number
 }
 
 type NuevoPago = {
@@ -23,141 +23,181 @@ type NuevoPago = {
 }
 
 export default function CheckoutPage() {
-  const [userId, setUserId] = useState<string | null>(null)
+  const [items, setItems] = useState<CartItem[]>([])
   const [total, setTotal] = useState<number>(0)
   const [method, setMethod] = useState<'tarjeta' | 'efectivo'>('tarjeta')
   const [processing, setProcessing] = useState(false)
   const router = useRouter()
 
-  // 1) Obtener usuario y calcular total del carrito
-  useEffect(() => {
-    async function load() {
-      // Obtener sesión
-      const { data: sessionData } = await supabase.auth.getSession()
-      const id = sessionData.session?.user.id ?? null
-      if (!id) {
-        router.push('/auth/login')
-        return
-      }
-      setUserId(id)
+ useEffect(() => {
+    async function loadCart() {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) return router.push('/auth/login')
 
-      // Obtener items del carrito con precio de producto
-      const { data: itemsData, error: itemsError } = await supabase
+      const { data, error } = await supabase
         .from('carritos')
-        .select('producto_id, cantidad, productos(precio)')
-        .eq('cliente_id', id)
+        .select('id, producto_id, cantidad, producto:producto_id(nombre, precio, stock)')
+        .eq('cliente_id', userId)
 
-      if (itemsError) {
-        console.error('Error cargando carrito:', itemsError)
+      if (error) {
+        console.error('Error cargando carrito:', error)
         return
       }
 
-      const cartItems = (itemsData ?? []) as CartItemWithPrecio[]
-
-      // Calcular total
-      const sum = cartItems.reduce((acc, item) => {
-        const precio = item.productos[0]?.precio ?? 0
-        return acc + item.cantidad * precio
-      }, 0)
-
-      setTotal(sum)
+      setItems(
+        (data ?? []).map((i: any) => ({
+          id: i.id,
+          producto_id: i.producto_id,
+          nombre: i.producto.nombre,
+          precio: i.producto.precio,
+          stock: i.producto.stock,
+          cantidad: i.cantidad,
+        }))
+      )
     }
-
-    load()
+    loadCart()
   }, [router])
 
-  // 2) Enviar pago ficticio
+  useEffect(() => {
+    setTotal(items.reduce((sum, i) => sum + i.precio * i.cantidad, 0))
+  }, [items])
+
+  const updateQuantity = (idx: number, qty: number) => {
+    setItems(prev => {
+      const c = [...prev]
+      c[idx].cantidad = Math.min(Math.max(qty, 1), c[idx].stock)
+      return c
+    })
+  }
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!userId) return
-    if (total <= 0) {
-      alert('El carrito está vacío.')
-      return
-    }
-
     setProcessing(true)
 
-    // Insertar pago
-    const { data: pagoData, error: pagoError } = await supabase
-      .from('pagos')
-      .insert<NuevoPago>({
-        cliente_id: userId,
-        total,
-        metodo_pago: method
-      })
-      .select('id')
-      .single()
+    // Obtener usuario
+    const { data: session } = await supabase.auth.getSession()
+    const user = session.session?.user
+    if (!user?.id) {
+      alert('Debes iniciar sesión para pagar.')
+      router.push('/auth/login')
+      return
+    }
+    const userId = user.id
 
-    if (pagoError || !pagoData?.id) {
-      alert('Error al crear el pago.')
-      console.error(pagoError)
+    // Validar existencia de cliente
+    const { data: cliente, error: clienteErr } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('id', userId)
+      .single()
+    if (clienteErr && clienteErr.code === 'PGRST116') {
+      const { error: ciErr } = await supabase.from('clientes').insert({
+        id: userId,
+        nombre: user.user_metadata.full_name || user.email,
+        correo: user.email as string,
+      })
+      if (ciErr) {
+        console.error('Error creando cliente:', ciErr)
+        alert('No se pudo crear tu perfil de cliente.')
+        setProcessing(false)
+        return
+      }
+    }
+
+    if (items.length === 0) {
+      alert('Tu carrito está vacío.')
       setProcessing(false)
       return
     }
 
-    const pagoId = pagoData.id
-
-    // Obtener los items para detalle
-    const { data: detailData, error: detailError } = await supabase
-      .from('carritos')
-      .select('producto_id, cantidad, productos(precio)')
-      .eq('cliente_id', userId)
-
-    if (detailError) {
-      console.error('Error cargando items para detalle:', detailError)
-    } else {
-      const detalleItems = (detailData ?? []) as CartItemWithPrecio[]
-      const detalles = detalleItems.map(i => ({
-        pago_id: pagoId,
-        producto_id: i.producto_id,
-        cantidad: i.cantidad,
-        precio_unitario: i.productos[0]?.precio ?? 0
-      }))
-      await supabase.from('detalle_pagos').insert(detalles)
+    for (const item of items) {
+      if (item.cantidad > item.stock) {
+        alert(`Stock insuficiente para ${item.nombre}`)
+        setProcessing(false)
+        return
+      }
     }
 
-    // Limpiar carrito y redirigir
+    // Crear pago
+    const { data: pago, error: pagoErr } = await supabase
+      .from('pagos')
+      .insert<NuevoPago>({ cliente_id: userId, total, metodo_pago: method })
+      .select('id')
+      .single()
+    if (pagoErr || !pago?.id) {
+      console.error('Error al crear pago:', pagoErr)
+      alert('Error al crear el pago: ' + (pagoErr?.message || pagoErr))
+      setProcessing(false)
+      return
+    }
+
+    // Detalles y stock
+    await Promise.all(
+      items.map(i =>
+        Promise.all([
+          supabase.from('detalle_pagos').insert({
+            pago_id: pago.id,
+            producto_id: i.producto_id,
+            cantidad: i.cantidad,
+            precio_unitario: i.precio,
+          }),
+          supabase.from('productos').update({ stock: i.stock - i.cantidad }).eq('id', i.producto_id),
+        ])
+      )
+    )
+
+    // Limpiar carrito
     await supabase.from('carritos').delete().eq('cliente_id', userId)
-    alert('Pago simulado exitoso!')
+
     router.push('/orders/confirmation')
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4">Pagar pedido</h1>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="max-w-lg mx-auto mt-12 p-6 bg-white rounded-xl shadow">
+      <div className="flex items-center mb-6">
+        <FaLeaf className="text-2xl text-green-700 mr-2" />
+        <h1 className="text-2xl font-bold">Confirmar Compra</h1>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
+        <AnimatePresence>
+          {items.map((i, idx) => (
+            <motion.div key={i.id} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }}
+              className="flex items-center justify-between bg-gray-50 p-3 rounded">
+              <div>
+                <p className="font-medium">{i.nombre}</p>
+                <p className="text-sm text-gray-500">${i.precio.toFixed(2)}</p>
+                <p className="text-xs text-red-600">Stock: {i.stock}</p>
+              </div>
+              <div className="flex items-center">
+                <button type="button" onClick={() => updateQuantity(idx, i.cantidad - 1)} disabled={i.cantidad <= 1} className="px-2">–</button>
+                <input type="number" value={i.cantidad} min={1} max={i.stock} onChange={e => updateQuantity(idx, +e.target.value)}
+                  className="w-12 text-center border rounded mx-1" />
+                <button type="button" onClick={() => updateQuantity(idx, i.cantidad + 1)} disabled={i.cantidad >= i.stock} className="px-2">+</button>
+              </div>
+              <p className="font-semibold">${(i.precio * i.cantidad).toFixed(2)}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        <div className="flex justify-between pt-4 border-t">
+          <span className="font-bold">Total:</span>
+          <span className="font-bold">${total.toFixed(2)}</span>
+        </div>
+
         <div>
-          <label className="block mb-1" htmlFor="method">Método de pago:</label>
-          <select
-            id="method"
-            value={method}
-            onChange={e => setMethod(e.target.value as 'tarjeta' | 'efectivo')}
-            className="w-full p-2 border rounded"
-          >
+          <label className="block text-sm mb-1">Método de Pago:</label>
+          <select value={method} onChange={e => setMethod(e.target.value as any)} className="w-full p-2 border rounded">
             <option value="tarjeta">Tarjeta</option>
             <option value="efectivo">Efectivo</option>
           </select>
         </div>
 
-        <div>
-          <label className="block mb-1" htmlFor="total">Total a pagar:</label>
-          <input
-            id="total"
-            type="text"
-            readOnly
-            value={`$${total.toFixed(2)}`}
-            className="w-full p-2 bg-gray-100 rounded"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={processing}
-          className="w-full py-2 bg-green-700 text-white rounded hover:bg-green-800 transition"
-        >
-          {processing ? 'Procesando...' : 'Realizar pago'}
+        <button type="submit" disabled={processing} className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+          {processing ? 'Procesando...' : <><FaShoppingBag className="inline mr-2" />Pagar Ahora</>}
         </button>
       </form>
-    </div>
+    </motion.div>
   )
 }
