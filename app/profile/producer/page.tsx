@@ -45,10 +45,11 @@ export default function ProducerProfilePage() {
 
   if (loading) {
     return <div className="text-center py-10 text-green-800">Cargando perfil...</div>
-}
+  }
+
   return (
     <motion.div
-      className="max-w-5xl mx-auto px-6 py-12 space-y-10 bg-white rounded-3xl shadow-lg"
+      className="max-w-3xl mx-auto px-6 py-12 space-y-8 bg-white rounded-3xl shadow-lg"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -69,16 +70,17 @@ export default function ProducerProfilePage() {
         </div>
       </div>
 
-      {/* Botones de sección */}
-      <div className="flex flex-wrap justify-center gap-4 overflow-x-auto no-scrollbar">
+      {/* Botón prioritario: Gestión de productos */}
+      <div className="flex justify-center">
         <Link href="/profile/producer/productos">
-          <Button
-            variant="outline"
-            className="text-green-900 font-medium border-green-300 bg-green-50 hover:bg-green-100 transition-all px-6 py-3 rounded-xl shadow-sm whitespace-nowrap"
-          >
+          <Button className="bg-green-600 text-white font-medium px-8 py-3 rounded-xl shadow-lg hover:brightness-105 transition">
             Gestión de productos
           </Button>
         </Link>
+      </div>
+
+      {/* Botones secundarios */}
+      <div className="flex flex-wrap justify-center gap-4 overflow-x-auto no-scrollbar">
         <Link href="/profile/producer/medicina">
           <Button
             variant="outline"
@@ -98,4 +100,5 @@ export default function ProducerProfilePage() {
         ))}
       </div>
     </motion.div>
-  )}
+  )
+}

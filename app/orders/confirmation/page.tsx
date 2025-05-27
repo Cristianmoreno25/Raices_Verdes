@@ -1,3 +1,4 @@
+//app/orders/confirmation/page.tsx
 import { FaCheckCircle } from 'react-icons/fa'
 import Link from 'next/link'
 

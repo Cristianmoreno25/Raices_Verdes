@@ -1,5 +1,4 @@
-// app/auth/login/page.tsx
-"use client";
+ "use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -21,6 +20,7 @@ const LoginPage = () => {
     setError(null);
     setLoading(true);
 
+    // 1. Iniciar sesión
     const { data: signInData, error: signInError } =
       await supabase.auth.signInWithPassword({ email, password });
 
@@ -32,7 +32,19 @@ const LoginPage = () => {
 
     const user = signInData.user!;
 
-    // Verificar si es productor
+    // 2. Verificar si es admin
+    const { data: admin } = await supabase
+      .from("admins")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (admin) {
+      router.push("/admin");
+      return;
+    }
+
+    // 3. Verificar si es productor
     const { data: productor } = await supabase
       .from("productores")
       .select("correo_confirmado, documento_verificado")
@@ -52,7 +64,7 @@ const LoginPage = () => {
       return;
     }
 
-    // Verificar si es cliente
+    // 4. Verificar si es cliente
     const { data: cliente } = await supabase
       .from("clientes")
       .select("id")
@@ -133,9 +145,7 @@ const LoginPage = () => {
           ) : (
             "Iniciar Sesión"
           )}
-        </button>        
-
-        {/* ... dentro del JSX de tu formulario: */}
+        </button>
         <p className="mt-4 text-center text-sm">
           ¿Olvidaste tu contraseña?&nbsp;
           <Link href="/password-recovery" className="text-blue-600 hover:underline">
@@ -144,7 +154,7 @@ const LoginPage = () => {
         </p>
 
         <p className="mt-4 text-center text-green-600">
-          ¿No tienes cuenta?{" "}
+          ¿No tienes cuenta?{' '}
           <Link
             href="/role-selection"
             className="font-semibold hover:underline"
