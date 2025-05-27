@@ -13,7 +13,7 @@ export default function NuevoProductoPage() {
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [historia, setHistoria] = useState('')
-  const [precio, setPrecio] = useState('')
+  const [precio, setPrecio] = useState<string>('');
   const [comunidad, setComunidad] = useState('')
   const [stock, setStock] = useState(0)
   const [imagen, setImagen] = useState<File | null>(null)

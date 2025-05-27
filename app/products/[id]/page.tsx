@@ -1,7 +1,9 @@
+// app/products/[id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/utils/supabase/client'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -19,6 +21,7 @@ export default function ProductDetailPage() {
         .select(`
           *,
           productor:productores (
+            id,
             nombre_productor,
             logo_url,
             descripcion_comunidad
@@ -27,8 +30,11 @@ export default function ProductDetailPage() {
         .eq('id', id)
         .single()
 
-      if (error) console.error(error)
-      else setProducto(data)
+      if (error) {
+        console.error(error)
+      } else {
+        setProducto(data)
+      }
     }
 
     const fetchComentarios = async () => {
@@ -38,8 +44,11 @@ export default function ProductDetailPage() {
         .eq('producto_id', id)
         .order('creado_en', { ascending: false })
 
-      if (error) console.error(error)
-      else setComentarios(data)
+      if (error) {
+        console.error(error)
+      } else {
+        setComentarios(data)
+      }
     }
 
     fetchProducto()
@@ -60,20 +69,22 @@ export default function ProductDetailPage() {
     >
       {/* Imagen principal */}
       <div className="relative w-full aspect-video bg-white border border-amber-100 rounded-xl shadow-md overflow-hidden">
-  <Image
-    src={producto.imagen_url}
-    alt={producto.nombre}
-    fill
-    className="object-contain"
-  />
-</div>
+        <Image
+          src={producto.imagen_url}
+          alt={producto.nombre}
+          fill
+          className="object-contain"
+        />
+      </div>
 
       {/* Información principal */}
       <div className="space-y-4">
         <h1 className="text-3xl font-bold text-green-900">{producto.nombre}</h1>
         <p className="text-amber-700 text-xl font-semibold">${producto.precio}</p>
         <p className="text-green-800">{producto.descripcion}</p>
-        <p className="text-green-800"><strong>Stock disponible:</strong> {producto.stock}</p>
+        <p className="text-green-800">
+          <strong>Stock disponible:</strong> {producto.stock}
+        </p>
         {producto.historia && (
           <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg">
             <h3 className="text-lg font-semibold text-amber-700">Historia del producto</h3>
@@ -86,7 +97,7 @@ export default function ProductDetailPage() {
       {producto.productor && (
         <div className="border-t pt-6 mt-6">
           <h2 className="text-xl font-bold text-green-900 mb-4">Productor</h2>
-          <div className="flex items-center gap-4">
+          <Link href={`/productor/${producto.productor.id}`} className="flex items-center gap-4 hover:opacity-80 transition">
             <Image
               src={producto.productor.logo_url}
               alt="Logo del productor"
@@ -98,7 +109,7 @@ export default function ProductDetailPage() {
               <p className="text-green-800 font-semibold">{producto.productor.nombre_productor}</p>
               <p className="text-sm text-green-700">{producto.productor.descripcion_comunidad}</p>
             </div>
-          </div>
+          </Link>
         </div>
       )}
 
