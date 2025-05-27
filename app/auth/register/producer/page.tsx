@@ -1,4 +1,5 @@
 
+//app/auth/register/producer/page.tsx
 'use client'
 import { FormEvent, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -81,20 +82,18 @@ export default function ProducerRegister() {
     // 2) Subir el documento al bucket "documentos" (público)
     let documento_url: string | null = null
     if (documentoFile) {
-      const docFileName = `${user.id}/documento.pdf`
-      const { error: docError } = await supabase.storage
-        .from('documentos')
-        .upload(docFileName, documentoFile, { upsert: false })
-      if (docError) {
-        setErrorMsg('Error al subir el documento: ' + docError.message)
-        setLoading(false)
-        return
-      }
-      // Obtener URL pública
-      const { data: docUrlData } = supabase.storage
-        .from('documentos')
-        .getPublicUrl(docFileName)
-      documento_url = docUrlData.publicUrl
+    const docFileName = `${user.id}/documento.pdf`
+    const { error: docError } = await supabase.storage
+    .from('documentos')
+    .upload(docFileName, documentoFile, { upsert: false })
+    if (docError) {
+    setErrorMsg('Error al subir el documento: ' + docError.message)
+    setLoading(false)
+    return
+  }
+
+  // Guardamos solo el path en la base de datos
+  documento_url = docFileName
     }
 
     // 3) Subir el logo al bucket "logos" (público)
