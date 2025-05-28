@@ -70,6 +70,7 @@ export default function CheckoutPage() {
       return c
     })
   }
+  
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setProcessing(true)
@@ -131,7 +132,7 @@ export default function CheckoutPage() {
       return
     }
 
-    // Detalles y stock
+    // Insertar detalles y actualizar stock
     await Promise.all(
       items.map(i =>
         Promise.all([
@@ -141,7 +142,10 @@ export default function CheckoutPage() {
             cantidad: i.cantidad,
             precio_unitario: i.precio,
           }),
-          supabase.from('productos').update({ stock: i.stock - i.cantidad }).eq('id', i.producto_id),
+          supabase
+            .from('productos')
+            .update({ stock: i.stock - i.cantidad })
+            .eq('id', i.producto_id),
         ])
       )
     )
@@ -149,7 +153,8 @@ export default function CheckoutPage() {
     // Limpiar carrito
     await supabase.from('carritos').delete().eq('cliente_id', userId)
 
-    router.push('/orders/confirmation')
+    // Redirigir a la confirmación con ID de pago
+    router.push(`/orders/confirmation?pagoId=${pago.id}`)
   }
 
   return (
